@@ -814,9 +814,28 @@ function app() {
           p = p.parentNode;
         }
         if (!p) return '';
-        const raw = Array.from(p.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('');
-        // Word inserts ". " after the footnote/endnote reference mark — strip it.
-        return raw.replace(/^\.\s+/, '');
+        if (!noteEl) {
+          return Array.from(p.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('');
+        }
+        // For footnote/endnote containers: skip the reference-mark run and the
+        // immediately following ". " separator run that Word always inserts.
+        const runs = Array.from(p.getElementsByTagNameNS(W_NS, 'r'));
+        const parts = [];
+        let skipNext = false;
+        for (const run of runs) {
+          const hasRef = run.getElementsByTagNameNS(W_NS, 'footnoteRef').length > 0 ||
+                         run.getElementsByTagNameNS(W_NS, 'endnoteRef').length > 0;
+          if (hasRef) { skipNext = true; continue; }
+          if (skipNext) {
+            skipNext = false;
+            const txt = Array.from(run.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('');
+            if (/^[\d\s]*\.\s*$/.test(txt)) continue; // pure ". " separator — drop it
+            parts.push(txt);
+            continue;
+          }
+          parts.push(...Array.from(run.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent));
+        }
+        return parts.join('');
       };
 
       const parser = new DOMParser();
