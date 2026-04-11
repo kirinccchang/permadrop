@@ -814,27 +814,51 @@ function app() {
           p = p.parentNode;
         }
         if (!p) return '';
-        return Array.from(p.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('');
+        const raw = Array.from(p.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('');
+        // Word inserts ". " after the footnote/endnote reference mark — strip it.
+        return raw.replace(/^\.\s+/, '');
       };
 
       const parser = new DOMParser();
 
       // Build xmlId → 1-based display number maps for footnotes and endnotes.
-      // Word inserts hidden system notes (separator, continuationSeparator,
-      // continuationNotice) that must be excluded so the display numbers
-      // match what authors see and write in "supra note N" references.
+      // Exclusions:
+      //   1. System notes by w:type: separator, continuationSeparator, continuationNotice
+      //   2. Symbol/bio footnotes referenced with w:customMarkFollows="1" in document.xml
+      //      (e.g. author bio marked with * or †) — these are not numbered by Word
+      //      and must not shift the 1-based counter.
       const SKIP_NOTE_TYPES = new Set(['separator', 'continuationSeparator', 'continuationNotice']);
       const buildDisplayMap = async (xmlPath, noteTag) => {
         const f = fileObj.zip.file(xmlPath);
         if (!f) return new Map();
         const doc = parser.parseFromString(await f.async('string'), 'application/xml');
+
+        // Collect IDs of symbol/custom-mark footnotes from document.xml
+        const customMarkIds = new Set();
+        const refTag = noteTag === 'footnote' ? 'footnoteReference' : 'endnoteReference';
+        for (const srcPath of ['word/document.xml', 'word/footnotes.xml', 'word/endnotes.xml']) {
+          const sf = fileObj.zip.file(srcPath);
+          if (!sf) continue;
+          const sdoc = parser.parseFromString(await sf.async('string'), 'application/xml');
+          for (const ref of sdoc.getElementsByTagNameNS(W_NS, refTag)) {
+            const cm = ref.getAttributeNS(W_NS, 'customMarkFollows') || ref.getAttribute('w:customMarkFollows');
+            if (cm === '1') {
+              const id = parseInt(ref.getAttributeNS(W_NS, 'id') || ref.getAttribute('w:id'), 10);
+              if (!isNaN(id)) customMarkIds.add(id);
+            }
+          }
+        }
+
         const ids = Array.from(doc.getElementsByTagNameNS(W_NS, noteTag))
           .filter(n => {
             const t = n.getAttributeNS(W_NS, 'type') || n.getAttribute('w:type') || '';
-            return !SKIP_NOTE_TYPES.has(t);
+            if (SKIP_NOTE_TYPES.has(t)) return false;
+            const id = parseInt(n.getAttributeNS(W_NS, 'id') || n.getAttribute('w:id'), 10);
+            if (isNaN(id) || id <= 0) return false;
+            if (customMarkIds.has(id)) return false; // symbol/bio footnote, not counted
+            return true;
           })
           .map(n => parseInt(n.getAttributeNS(W_NS, 'id') || n.getAttribute('w:id'), 10))
-          .filter(id => !isNaN(id) && id > 0)
           .sort((a, b) => a - b);
         const map = new Map();
         ids.forEach((id, i) => map.set(id, i + 1));
