@@ -817,21 +817,50 @@ function app() {
         return Array.from(p.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('');
       };
 
-      const getNoteNum = (node, noteEl) => {
+      const parser = new DOMParser();
+
+      // Build xmlId → 1-based display number maps for footnotes and endnotes.
+      // Word inserts hidden system notes (separator, continuationSeparator,
+      // continuationNotice) that must be excluded so the display numbers
+      // match what authors see and write in "supra note N" references.
+      const SKIP_NOTE_TYPES = new Set(['separator', 'continuationSeparator', 'continuationNotice']);
+      const buildDisplayMap = async (xmlPath, noteTag) => {
+        const f = fileObj.zip.file(xmlPath);
+        if (!f) return new Map();
+        const doc = parser.parseFromString(await f.async('string'), 'application/xml');
+        const ids = Array.from(doc.getElementsByTagNameNS(W_NS, noteTag))
+          .filter(n => {
+            const t = n.getAttributeNS(W_NS, 'type') || n.getAttribute('w:type') || '';
+            return !SKIP_NOTE_TYPES.has(t);
+          })
+          .map(n => parseInt(n.getAttributeNS(W_NS, 'id') || n.getAttribute('w:id'), 10))
+          .filter(id => !isNaN(id) && id > 0)
+          .sort((a, b) => a - b);
+        const map = new Map();
+        ids.forEach((id, i) => map.set(id, i + 1));
+        return map;
+      };
+      const fnDisplayMap = await buildDisplayMap('word/footnotes.xml', 'footnote');
+      const enDisplayMap = await buildDisplayMap('word/endnotes.xml',  'endnote');
+
+      const getNoteNum = (node, noteEl, displayMap) => {
         if (!noteEl) return null;
         let p = node.parentNode;
         while (p) {
           if (p.localName === noteEl) {
-            const id = p.getAttributeNS(W_NS, 'id') || p.getAttribute('w:id');
-            return id && +id > 0 ? +id : null;
+            const rawId = parseInt(p.getAttributeNS(W_NS, 'id') || p.getAttribute('w:id'), 10);
+            if (!rawId || rawId <= 0) return null;
+            return displayMap?.get(rawId) ?? rawId;
           }
           p = p.parentNode;
         }
         return null;
       };
 
-      const parser = new DOMParser();
       for (const t of targets) {
+        const displayMap = t.noteEl === 'footnote' ? fnDisplayMap
+                         : t.noteEl === 'endnote'  ? enDisplayMap
+                         : null;
         const xmlFile = fileObj.zip.file(t.xml);
         if (!xmlFile) continue;
         const xmlStr = await xmlFile.async('string');
@@ -852,7 +881,7 @@ function app() {
             if (!rId || !ridToUrl[rId]) continue;
             const url = ridToUrl[rId].replace(/\/$/, ''); // normalize trailing slash
             if (!url.startsWith('http') || shouldSkip(url)) continue;
-            const num = getNoteNum(hl, t.noteEl);
+            const num = getNoteNum(hl, t.noteEl, displayMap);
             const ctx = getContainerText(hl, t.noteEl);
             ensure(url).hlOccs.push({ file: t.xml, rId, label: t.label, num, ctx });
           }
@@ -870,7 +899,7 @@ function app() {
             const rawUrl = match[0].replace(/[.,;:!?]+$/, '');
             const url = rawUrl.replace(/\/$/, ''); // normalize trailing slash for dedup
             if (!url.startsWith('http') || shouldSkip(url)) continue;
-            const num = getNoteNum(para, t.noteEl);
+            const num = getNoteNum(para, t.noteEl, displayMap);
             const ctx = getContainerText(para, t.noteEl);
             ensure(url).textOccs.push({ file: t.xml, label: t.label, num, ctx, originalUrl: rawUrl });
           }
