@@ -1,53 +1,50 @@
 # PermaDrop
 
-**Archive every URL in your Word documents to [perma.cc](https://perma.cc)** — turning citations into permanent, tamper-proof links for legal scholarship.
+[繁體中文](README.zh-TW.md) | **English**
 
-**將 Word 文件中的每一個網址封存至 [perma.cc](https://perma.cc)** — 為法律學術寫作建立永久、不可篡改的引用連結。
+**Archive URLs in your Word documents to [perma.cc](https://perma.cc)** — creating permanent, tamper-proof links for legal citations.
 
 🔗 **[permadrop.kirinchang.com](https://permadrop.kirinchang.com)**
 
 ---
 
-## What it does / 功能說明
+## What it does
 
-PermaDrop reads `.docx` files directly in your browser, extracts every URL from footnotes, endnotes, and body text, then archives them to perma.cc via the official API — inserting permanent perma.cc links back into a clean or redline copy of your document.
+PermaDrop scans your `.docx` files for every URL in footnotes, endnotes, and body text, archives them to perma.cc via the official API, and inserts the permanent links back into your document — available as a clean copy or a Track Changes redline.
 
-PermaDrop 在您的瀏覽器中直接讀取 `.docx` 檔案，從腳注、尾注與本文中擷取所有網址，透過 perma.cc 官方 API 進行封存，並將永久連結插回修改後的文件（提供乾淨版與修訂標記版）。
+No installation. No account. Just a [perma.cc API key](https://perma.cc/settings/tools).
 
-- ✅ Multiple files at once／支援同時上傳多個檔案
-- ✅ Clean copy or Redline (Track Changes)／乾淨版或修訂標記版（Track Changes）
-- ✅ CSV archive report／CSV 封存報告
-- ✅ Existing perma.cc links detected and skipped／自動偵測並略過已有的 perma.cc 連結
-- ✅ Wayback Machine fallback on capture failure／封存失敗時自動提供 Wayback Machine 備援
-- ✅ Everything runs in your browser — no upload, no server／所有處理均在瀏覽器本地執行，不上傳、無伺服器
+## Features
 
----
+- **Multiple files** — upload and process several `.docx` files at once
+- **Clean or Redline** — download a submission-ready copy or a Track Changes version
+- **CSV report** — export all URLs, perma.cc links, locations, and statuses
+- **Smart detection** — existing perma.cc links in the document are flagged and skipped by default
+- **Wayback Machine fallback** — if perma.cc capture fails, use an archived snapshot instead
+- **Fully client-side** — your documents and API key never leave your browser
 
-## Usage / 使用方式
+## How to use
 
-1. Open [permadrop.kirinchang.com](https://permadrop.kirinchang.com)／開啟工具網址
-2. Paste your [perma.cc API key](https://perma.cc/settings/tools)／貼上您的 perma.cc API 金鑰
-3. Choose an archive folder／選擇封存資料夾
-4. Upload your `.docx` file(s)／上傳 `.docx` 文件（可多檔）
-5. Select URLs to archive → **Archive Selected**／勾選要封存的網址 → 按下封存
-6. Download the modified document／下載修改後的文件
+1. Open [permadrop.kirinchang.com](https://permadrop.kirinchang.com)
+2. Paste your [perma.cc API key](https://perma.cc/settings/tools)
+3. Choose an archive folder
+4. Upload one or more `.docx` files
+5. Select the URLs you want to archive
+6. Click **Archive Selected**
+7. Download the modified document(s)
 
----
+## Requirements
 
-## Privacy / 隱私說明
+- A modern browser (Chrome, Firefox, Safari, Edge)
+- A [perma.cc account](https://perma.cc/sign-up) with an API key
 
-Your documents and API key never leave your device. All processing happens client-side in JavaScript.
+## Privacy
 
-您的文件與 API 金鑰不會離開您的裝置。所有處理均於瀏覽器本地的 JavaScript 中執行。
+Your documents and API key are processed entirely in your browser. Nothing is uploaded to any server other than the perma.cc API itself.
 
----
-
-## License / 授權
+## License
 
 Copyright (C) 2026 [Kirin Chang](https://kirinchang.com)
 
-Licensed under the [GNU Affero General Public License v3.0](LICENSE).
-
-If you modify this tool and offer it as a network service, you must make your modified source code available under the same license.
-
-本工具採用 [GNU Affero 通用公共授權條款第 3 版（AGPL-3.0）](LICENSE)。若您修改本工具並以網路服務形式提供，須以相同授權條款公開修改後的原始碼。
+Licensed under the [GNU Affero General Public License v3.0](LICENSE).  
+If you modify this tool and run it as a network service, you must release your modified source code under the same license.
