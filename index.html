@@ -773,6 +773,15 @@ function app() {
     async extractUrlsFromFile(fileObj) {
       const URL_RE = /https?:\/\/[^\s<>"')\]]+/g;
 
+      // URLs that are already permanent citations — no archiving needed
+      const PERMANENT_HOSTS = [
+        'perma.cc',          // already a perma.cc link
+        'web.archive.org',   // already a Wayback Machine snapshot
+        'doi.org',           // DOI — permanent identifier for academic works
+        'dx.doi.org',        // legacy DOI resolver
+        'jstor.org',         // JSTOR stable URLs are permanent
+        'hdl.handle.net',    // Handle System persistent identifiers
+      ];
       // Internal / non-archivable URL patterns to skip
       const SKIP_HOSTS = [
         'zotero.org',        // Zotero internal library links
@@ -781,6 +790,12 @@ function app() {
         'localhost',
         '127.0.0.1',
       ];
+      const isPermanent = url => {
+        try {
+          const host = new URL(url).hostname;
+          return PERMANENT_HOSTS.some(h => host === h || host.endsWith('.' + h));
+        } catch { return false; }
+      };
       const shouldSkip = url => {
         try {
           const host = new URL(url).hostname;
@@ -973,15 +988,16 @@ function app() {
           locationLabel,
           contextText:   firstCtx,
           expanded:      false,
-          selected:      !firstCtx.toLowerCase().includes('perma.cc'),
-          skip:          url.includes('perma.cc'),
+          selected:      !firstCtx.toLowerCase().includes('perma.cc') && !isPermanent(url),
+          skip:          isPermanent(url),
           existingPermaUrl: (() => {
-            if (url.includes('perma.cc')) return null;
+            if (isPermanent(url)) return null;
             const m = firstCtx.match(/https?:\/\/perma\.cc\/[A-Z0-9]{4}-[A-Z0-9]{4}/i);
             return m ? m[0] : null;
           })(),
-          status:        firstCtx.toLowerCase().includes('perma.cc') && !url.includes('perma.cc')
-                           ? 'existing' : 'pending',
+          status:        isPermanent(url) ? 'existing'
+                       : firstCtx.toLowerCase().includes('perma.cc') ? 'existing'
+                       : 'pending',
           permaUrl:      null,
           error:         null,
           waybkUrl:      null,
