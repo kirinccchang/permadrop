@@ -8,11 +8,19 @@
 
 ---
 
+## Why this exists
+
+Legal scholars cite online sources constantly — court opinions, government documents, news articles, datasets. But URLs break. A link that works today may return a 404 tomorrow, taking your citation with it.
+
+The Bluebook addresses this directly: **Rule 18.2 requires a permanent archived URL** (such as a perma.cc link) whenever you cite an internet source in legal scholarship. In practice, this means manually visiting perma.cc for every URL in your footnotes, copying the archive link, and pasting it back into your document — one by one, for dozens or hundreds of citations.
+
+PermaDrop automates the entire process in one pass.
+
 ## What it does
 
-PermaDrop scans your `.docx` files for every URL in footnotes, endnotes, and body text, archives them to perma.cc via the official API, and inserts the permanent links back into your document — available as a clean copy or a Track Changes redline.
+PermaDrop scans your `.docx` files for every URL in footnotes, endnotes, and body text, archives them to perma.cc via the official API, and inserts the permanent links back into your document — available as a clean copy or a Track Changes redline. Original formatting is fully preserved.
 
-No installation. No account. Just a [perma.cc API key](https://perma.cc/settings/tools).
+No installation. No account beyond perma.cc. Just a [perma.cc API key](https://perma.cc/settings/tools).
 
 ## Features
 
