@@ -1,0 +1,1546 @@
+<!--
+  PermaDrop — Archive Word document URLs to perma.cc
+  Copyright (C) 2026 Kirin Chang <https://kirinchang.com>
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published
+  by the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU Affero General Public License for more details.
+
+  https://www.gnu.org/licenses/agpl-3.0.html
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PermaDrop</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Theme tokens ──────────────────────────────────────────────────── */
+    :root {
+      --bg:             #f4f4f5;
+      --surface:        #ffffff;
+      --border:         #e4e4e7;
+      --border-input:   #d4d4d8;
+      --text:           #18181b;
+      --text-2:         #3f3f46;
+      --text-muted:     #71717a;
+      --text-faint:     #a1a1aa;
+      --hover-bg:       #fafafa;
+      --preview-bg:     #f9fafb;
+      --divider:        #f4f4f5;
+      --privacy-bg:     #f0fdf4;
+      --privacy-border: #bbf7d0;
+      --privacy-text:   #166534;
+      --badge-personal: #f4f4f5;
+      --progress-track: #e4e4e7;
+      --wayback-bg:     #fffbeb;
+      --wayback-border: #fde68a;
+      --wayback-text:   #92400e;
+      --note-bg:        #fffbeb;
+      --note-border:    #fde68a;
+      --note-text:      #78350f;
+    }
+    body.dark {
+      --bg:             #09090b;
+      --surface:        #18181b;
+      --border:         #27272a;
+      --border-input:   #3f3f46;
+      --text:           #fafafa;
+      --text-2:         #d4d4d8;
+      --text-muted:     #a1a1aa;
+      --text-faint:     #71717a;
+      --hover-bg:       #1c1c1f;
+      --preview-bg:     #111113;
+      --divider:        #27272a;
+      --privacy-bg:     #052e16;
+      --privacy-border: #14532d;
+      --privacy-text:   #86efac;
+      --badge-personal: #27272a;
+      --progress-track: #27272a;
+      --wayback-bg:     #1c1408;
+      --wayback-border: #78350f;
+      --wayback-text:   #fde68a;
+      --note-bg:        #1c1408;
+      --note-border:    #78350f;
+      --note-text:      #fde68a;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+    .container { max-width: 680px; margin: 0 auto; padding: 40px 20px 120px; }
+    h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+    .card { background: var(--surface); border-radius: 10px; padding: 22px 24px; margin-top: 16px; border: 1px solid var(--border); }
+    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .step-badge { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .step-badge.active { background: var(--text); color: var(--surface); }
+    .step-badge.done { background: #16a34a; color: white; }
+    .step-badge.inactive { background: var(--border); color: var(--text-faint); }
+    .card-title { font-size: 15px; font-weight: 600; }
+    .field-label { font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 5px; }
+    .hint { font-size: 13px; color: var(--text-muted); margin-top: 5px; line-height: 1.5; }
+    .error-msg { font-size: 13px; color: #dc2626; margin-top: 8px; }
+    input[type=password], input[type=text] {
+      width: 100%; padding: 8px 11px; border: 1px solid var(--border-input); border-radius: 7px;
+      font-size: 14px; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+      background: var(--surface); color: var(--text);
+    }
+    input[type=password]:focus, input[type=text]:focus {
+      border-color: var(--text); box-shadow: 0 0 0 3px rgba(128,128,128,0.12);
+    }
+    .row { display: flex; gap: 8px; }
+    .row input { flex: 1; }
+    button { padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: background 0.15s, opacity 0.15s; }
+    .btn-primary { background: var(--text); color: var(--surface); }
+    .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+    .btn-primary:disabled { background: var(--text-faint); cursor: not-allowed; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-success:hover:not(:disabled) { background: #15803d; }
+    .btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); font-size: 12px; padding: 5px 10px; }
+    .btn-ghost:hover:not(:disabled) { background: var(--hover-bg); }
+    .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+    .folder-option {
+      display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px;
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .folder-option:hover { background: var(--hover-bg); }
+    .folder-option.selected { border-color: var(--text); background: var(--hover-bg); }
+    .folder-option input[type=radio] { margin-top: 2px; accent-color: var(--text); flex-shrink: 0; }
+    .folder-name { font-size: 14px; font-weight: 500; }
+    .folder-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; margin-left: auto; flex-shrink: 0; }
+    .badge-org { background: #dbeafe; color: #1d4ed8; }
+    .badge-personal { background: var(--badge-personal); color: var(--text-muted); }
+    .drop-zone {
+      border: 2px dashed var(--border-input); border-radius: 8px; padding: 28px;
+      text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--text); background: var(--hover-bg); }
+    .drop-zone p { font-size: 14px; color: var(--text-muted); }
+    .drop-zone strong { color: var(--text); }
+    .file-input { display: none; }
+    .url-list { max-height: 360px; overflow-y: auto; margin-top: 14px; }
+    .url-item { padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; margin-bottom: 6px; transition: opacity 0.15s; }
+    .url-item.deselected { opacity: 0.45; }
+    .url-item-row { display: flex; gap: 10px; align-items: flex-start; }
+    .url-item-row input[type=checkbox] { margin-top: 2px; flex-shrink: 0; accent-color: var(--text); }
+    .url-text { font-size: 12px; color: #2563eb; word-break: break-all; font-family: monospace; }
+    .url-meta { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .url-preview { font-size: 11px; color: var(--text-2); margin-top: 4px; font-family: monospace; word-break: break-all; background: var(--preview-bg); border-radius: 4px; padding: 3px 6px; }
+    .url-status { font-size: 12px; margin-top: 4px; }
+    .s-pending  { color: var(--text-faint); }
+    .s-archiving { color: #d97706; }
+    .s-checking { color: #6366f1; }
+    .s-done     { color: #16a34a; }
+    .s-capture_failed { color: #d97706; }
+    .s-error    { color: #dc2626; }
+    .s-skip     { color: var(--text-muted); }
+    .s-fallback { color: #d97706; }
+    .wayback-offer { margin-top: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .btn-wayback { background: var(--wayback-bg); border: 1px solid var(--wayback-border); color: var(--wayback-text); font-size: 11px; padding: 3px 9px; border-radius: 5px; cursor: pointer; }
+    .btn-wayback:hover { opacity: 0.85; }
+    .progress-bar { height: 6px; background: var(--progress-track); border-radius: 3px; overflow: hidden; margin: 10px 0 6px; }
+    .progress-fill { height: 100%; background: var(--text); border-radius: 3px; transition: width 0.4s ease; }
+    .progress-label { font-size: 12px; color: var(--text-muted); }
+    .divider { height: 1px; background: var(--divider); margin: 14px 0; }
+    .actions { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .dimmed { opacity: 0.45; pointer-events: none; }
+    .connected-info { font-size: 14px; color: var(--text-2); }
+    .connected-info strong { color: var(--text); }
+    .privacy-note {
+      display: flex; align-items: flex-start; gap: 8px; background: var(--privacy-bg);
+      border: 1px solid var(--privacy-border); border-radius: 7px; padding: 10px 13px; margin-top: 6px;
+    }
+    .privacy-note p { font-size: 12px; color: var(--privacy-text); line-height: 1.5; }
+    .dark-toggle { background: none; border: 1px solid var(--border); border-radius: 99px; padding: 4px 11px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
+    .dark-toggle:hover { background: var(--hover-bg); }
+    /* In-page toast */
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); padding: 11px 22px; border-radius: 9px; font-size: 13px; font-weight: 500; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,0.18); pointer-events: none; white-space: nowrap; transition: opacity 0.3s; }
+    .toast-success { background: #18181b; color: #fff; }
+    .toast-warn    { background: #92400e; color: #fef3c7; }
+    .toast-info    { background: #1e3a5f; color: #bfdbfe; }
+    /* Existing-perma status */
+    .s-existing { color: #6b7280; font-size: 11px; margin-top: 4px; }
+    .file-chip { display:flex; align-items:center; gap:8px; padding:7px 10px; background:var(--surface); border:1px solid var(--border); border-radius:6px; font-size:12px; margin-top:6px; }
+    .file-chip-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-weight:500; }
+    .file-chip-info { color:var(--text-muted); white-space:nowrap; }
+    .file-chip-remove { background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:16px; padding:0 2px; line-height:1; }
+    .file-chip-remove:hover { color:#dc2626; }
+    .file-group { border:1px solid var(--border); border-radius:8px; margin-bottom:10px; overflow:hidden; }
+    .file-group-header { display:flex; align-items:center; gap:10px; padding:9px 14px; background:var(--preview-bg); font-size:12px; font-weight:600; color:var(--text-2); border-bottom:1px solid var(--border); transition: background 0.15s; }
+    .file-group-header:hover { background: var(--hover-bg); }
+    .note-box { background: var(--note-bg); border: 1px solid var(--note-border); border-radius: 7px; padding: 11px 14px; margin-bottom: 14px; font-size: 12px; color: var(--note-text); line-height: 1.6; }
+    .file-group-header .fg-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .file-dl-row { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--divider); flex-wrap:wrap; }
+    .file-dl-row:last-child { border-bottom:none; }
+    .file-dl-name { flex:1; min-width:120px; font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
+  </style>
+</head>
+<body>
+<div class="container" x-data="app()">
+
+  <div style="margin-bottom: 28px;">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+      <h1>PermaDrop</h1>
+      <button class="dark-toggle" @click="darkMode = !darkMode" :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'">
+        <span x-text="darkMode ? '☀ Light' : '☾ Dark'"></span>
+      </button>
+    </div>
+    <p class="subtitle">
+      Archive every URL in your Word documents to perma.cc — turning citations into permanent, tamper-proof links for legal scholarship.<br>
+      Everything runs in your browser. Your documents and API key never leave your device.
+    </p>
+  </div>
+
+  <!-- STEP 1: Connect -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step-badge" :class="user ? 'done' : 'active'">
+        <span x-show="!user">1</span>
+        <span x-show="user">✓</span>
+      </div>
+      <div class="card-title">Connect to Perma.cc</div>
+    </div>
+
+    <div x-show="!user">
+      <div class="field-label">API Key</div>
+      <div class="row">
+        <input type="password" x-model="apiKey" placeholder="Paste your perma.cc API key"
+               @keyup.enter="connect" autocomplete="off"
+               @input="apiKey = apiKey.replace(/[^\x20-\x7E]/g, '')" />
+        <button class="btn-primary" @click="connect" :disabled="connecting || apiKey.trim() === ''">
+          <span x-show="!connecting">Connect</span>
+          <span x-show="connecting">Connecting…</span>
+        </button>
+      </div>
+      <label style="display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; color:var(--text-muted); cursor:pointer; user-select:none;">
+        <input type="checkbox" x-model="rememberKey" style="cursor:pointer; accent-color:var(--text);" />
+        Remember API key on this device
+      </label>
+      <p class="hint" style="margin-top:5px;">
+        <span x-show="!rememberKey">Your API key stays in memory only and is cleared when you close the tab.</span>
+        <span x-show="rememberKey">Saved locally in your browser — never sent anywhere except directly to api.perma.cc. Uncheck to remove.</span>
+      </p>
+      <p class="error-msg" x-show="connectError" x-text="connectError"></p>
+    </div>
+
+    <div x-show="user">
+      <p class="connected-info">
+        Connected as <strong x-text="user?.full_name"></strong>
+      </p>
+      <button class="btn-ghost" style="margin-top: 10px;" @click="disconnect">Disconnect &amp; clear</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Choose Folder -->
+  <div class="card" :class="!user ? 'dimmed' : ''">
+    <div class="card-header">
+      <div class="step-badge" :class="!user ? 'inactive' : folderOptions.length > 0 ? 'done' : 'active'">
+        <span x-show="folderOptions.length === 0">2</span>
+        <span x-show="folderOptions.length > 0">✓</span>
+      </div>
+      <div class="card-title">Choose Archive Folder</div>
+    </div>
+
+    <div x-show="user">
+      <p class="hint" style="margin-bottom: 12px;">
+        Institutional folders have unlimited archives. Free personal accounts are limited to 10 links/month.
+      </p>
+
+      <template x-for="(opt, i) in folderOptions" :key="i">
+        <div class="folder-option"
+             :class="selectedFolderIdx === i ? 'selected' : ''"
+             @click="selectedFolderIdx = i">
+          <input type="radio" name="folder" :checked="selectedFolderIdx === i" style="pointer-events:none;" />
+          <div style="flex: 1;">
+            <div class="folder-name" x-text="opt.label"></div>
+            <div class="folder-desc" x-text="opt.desc"></div>
+          </div>
+          <span class="badge" :class="opt.badgeClass" x-text="opt.badge"></span>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- STEP 3: Upload DOCX -->
+  <div class="card" :class="!user ? 'dimmed' : ''">
+    <div class="card-header">
+      <div class="step-badge" :class="!user ? 'inactive' : files.length > 0 ? 'done' : 'active'">
+        <span x-show="files.length === 0">3</span>
+        <span x-show="files.length > 0">✓</span>
+      </div>
+      <div class="card-title">Upload Word Document(s)</div>
+    </div>
+
+    <div class="drop-zone" :class="dragging ? 'dragover' : ''"
+         @click="$refs.fileInput.click()"
+         @dragover.prevent="dragging = true"
+         @dragleave="dragging = false"
+         @drop.prevent="onDrop($event)">
+      <p>
+        <strong>Click to choose</strong> or drag &amp; drop <strong>.docx</strong> files
+        <span style="color:var(--text-faint);"> — multiple files allowed</span>
+      </p>
+    </div>
+    <input type="file" accept=".docx" multiple class="file-input" x-ref="fileInput" @change="loadFiles($event)" />
+
+    <template x-for="f in files" :key="f.id">
+      <div class="file-chip">
+        <span class="file-chip-name" x-text="f.name"></span>
+        <span class="file-chip-info" x-text="fileUrls(f.id).length + ' URL(s)'"></span>
+        <button class="file-chip-remove" @click="removeFile(f.id)" :disabled="archiving" title="Remove">×</button>
+      </div>
+    </template>
+
+    <div class="privacy-note" style="margin-top: 10px;">
+      <p>Documents are read directly in your browser. No file upload. No server receives your content.</p>
+    </div>
+
+    <p class="error-msg" x-show="fileError" x-text="fileError"></p>
+  </div>
+
+  <!-- STEP 4: Archive -->
+  <div class="card" :class="files.length === 0 ? 'dimmed' : ''">
+    <div class="card-header">
+      <div class="step-badge"
+           :class="files.length === 0 ? 'inactive' : allDone ? 'done' : 'active'">
+        <span x-show="!allDone">4</span>
+        <span x-show="allDone">✓</span>
+      </div>
+      <div class="card-title">Archive URLs</div>
+    </div>
+
+    <!-- No URLs found -->
+    <div x-show="files.length > 0 && urls.filter(u => !u.skip).length === 0">
+      <p style="font-size:13px; color:#71717a;">No URLs found in this document.</p>
+    </div>
+
+    <div x-show="urls.filter(u => !u.skip).length > 0">
+
+      <div class="note-box">
+        <strong>Note:</strong> Some websites may fail to capture (<em>Capture Failed</em>) even when a perma.cc link is generated. Always verify each archived link directly on perma.cc before finalizing your document.<br>
+        For failed captures, open the link on perma.cc → <strong>Show record details</strong> → <strong>Upload file</strong> to manually upload a screenshot (GIF/JPG/PNG) or PDF of the page as a replacement capture. Files up to 200 MB are accepted.
+      </div>
+
+      <div class="actions">
+        <button class="btn-ghost" @click="toggleAll()" x-show="!archiving && !allDone">
+          <span x-text="urls.filter(u=>!u.skip && u.status !== 'existing').every(u=>u.selected) ? 'Deselect All' : 'Select All'"></span>
+        </button>
+        <label style="display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); cursor:pointer; user-select:none;"
+               title="Get a desktop notification when all archiving is finished">
+          <input type="checkbox" x-model="notifyWhenDone"
+                 @change="notifyWhenDone && requestNotify()"
+                 style="cursor:pointer; accent-color: var(--text);" />
+          🔔 Notify when done
+        </label>
+        <span class="hint" x-show="allDone" style="margin: 0;">All done.</span>
+      </div>
+
+      <template x-for="f in files" :key="f.id">
+        <div x-show="fileUrls(f.id).length > 0" class="file-group" style="margin-top:12px;">
+          <div class="file-group-header" @click="f.collapsed = !f.collapsed" style="cursor:pointer; user-select:none;">
+            <span style="font-size:11px; color:var(--text-faint); flex-shrink:0;" x-text="f.collapsed ? '▶' : '▼'"></span>
+            <span class="fg-name" x-text="f.name"></span>
+            <span style="color:var(--text-muted); font-weight:400;" x-text="fileUrls(f.id).length + ' URL(s)'"></span>
+            <button class="btn-ghost" @click.stop="toggleAll(f.id)" x-show="!archiving && !f.collapsed"
+                    style="margin-left:auto; font-size:11px; padding:3px 9px;">
+              <span x-text="fileUrls(f.id).filter(u => u.status !== 'existing').every(u=>u.selected) ? 'Deselect All' : 'Select All'"></span>
+            </button>
+          </div>
+          <div x-show="!f.collapsed" class="url-list" style="margin:0; padding:8px 0;">
+            <template x-for="item in fileUrls(f.id)" :key="item.url + '-' + f.id">
+              <div class="url-item" :class="!item.selected ? 'deselected' : ''">
+                <div class="url-item-row">
+                  <input type="checkbox" x-model="item.selected"
+                         :disabled="archiving || ['done','fallback'].includes(item.status)"
+                         @change="item.existingPermaUrl ? (item.selected ? item.status = 'pending' : item.status = 'existing') : null" />
+                  <div style="flex:1; min-width:0;">
+                    <div class="url-text" x-text="item.url"></div>
+                    <div class="url-meta" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <span x-text="item.locationLabel"></span>
+                      <button
+                        x-show="item.contextText"
+                        @click="item.expanded = !item.expanded"
+                        style="background:none; border:none; padding:0; font-size:11px; color:#71717a; cursor:pointer; text-decoration:underline; text-underline-offset:2px;"
+                        x-text="item.expanded ? 'Citation ▲' : 'Citation ▾'"
+                      ></button>
+                    </div>
+                    <!-- Full citation preview (collapsible) -->
+                    <div class="url-preview" x-show="item.expanded" x-text="previewText(item)" style="margin-top:5px;"></div>
+                    <div class="url-status" :class="`s-${item.status}`" x-show="item.status !== 'pending' && (item.selected || item.status === 'existing')">
+                      <span x-show="item.status === 'existing'" style="display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap; color:#d97706; font-size:11px;">
+                        ⚠ Already archived:
+                        <a :href="item.existingPermaUrl" target="_blank" x-text="item.existingPermaUrl"
+                           style="color:#d97706; text-decoration:underline; text-underline-offset:2px; font-family:monospace; font-size:11px;"></a>
+                        <span style="color:var(--text-faint); font-size:10px;">(found in document — deselected by default)</span>
+                      </span>
+                      <span x-show="item.status === 'archiving'" style="color:#d97706;">Archiving…</span>
+                      <span x-show="item.status === 'done'">
+                        ✓ <a :href="item.permaUrl" target="_blank" x-text="item.permaUrl"
+                             style="color:#16a34a; text-decoration:none; font-family:monospace; font-size:11px;"></a>
+                      </span>
+                      <span x-show="item.status === 'fallback'">
+                        📚 <a :href="item.permaUrl" target="_blank" x-text="item.permaUrl"
+                              style="color:#d97706; text-decoration:none; font-family:monospace; font-size:11px;"></a>
+                        <span style="color:var(--text-faint); font-size:10px;"> (Wayback Machine)</span>
+                      </span>
+                      <span x-show="item.status === 'error'" style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span x-text="'✗ ' + item.error"></span>
+                        <button @click="retryItem(item)" :disabled="archiving"
+                                style="font-size:11px; padding:2px 9px; background:var(--surface); border:1px solid var(--border-input); border-radius:4px; cursor:pointer; color:var(--text-2); font-weight:500;">
+                          ↺ Retry
+                        </button>
+                      </span>
+                      <!-- Wayback Machine offer: shown after API error if a snapshot exists -->
+                      <div class="wayback-offer" x-show="item.status === 'error' && item.waybkUrl">
+                        <span style="font-size:11px; color:var(--text-muted);">
+                          📚 Wayback snapshot available
+                          <span x-show="item.waybkDate" x-text="'(' + item.waybkDate + ')'"></span>
+                        </span>
+                        <button class="btn-wayback" @click="useWayback(item)">Use this instead</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- STEP 5: Download -->
+  <div class="card" :class="!files.some(f => fileAllDone(f.id)) ? 'dimmed' : ''">
+    <div class="card-header">
+      <div class="step-badge" :class="!files.some(f => fileAllDone(f.id)) ? 'inactive' : 'active'">5</div>
+      <div class="card-title">Download Modified Document(s)</div>
+    </div>
+
+    <!-- Per-file download rows -->
+    <template x-for="f in files" :key="f.id">
+      <div class="file-group" style="margin-bottom:10px;">
+        <div class="file-group-header">
+          <span class="fg-name" x-text="f.name"></span>
+          <span x-show="!fileAllDone(f.id) && urls.filter(u => u.fileId === f.id && !u.skip && u.selected && (u.status === 'pending' || u.status === 'archiving')).length > 0"
+                style="font-size:11px; color:var(--text-muted); font-weight:400; margin-left:auto;">Archiving in progress…</span>
+        </div>
+        <div class="file-dl-row" style="padding: 10px 14px;">
+          <span class="file-dl-name"
+                :style="fileDoneCount(f.id) === 0 && fileAllDone(f.id) ? 'color:var(--text-muted); font-weight:400;' : ''"
+                x-text="fileDoneCount(f.id) > 0
+                  ? fileDoneCount(f.id) + ' link(s) inserted'
+                  : fileAllDone(f.id)
+                    ? 'No links archived'
+                    : 'Archiving in progress…'">
+          </span>
+          <button class="btn-success" @click="download('clean', f.id)" :disabled="!fileAllDone(f.id)" style="flex-shrink:0; font-size:12px; padding:5px 11px;">⬇ Clean</button>
+          <button class="btn-ghost" @click="download('redline', f.id)" :disabled="!fileAllDone(f.id)" style="flex-shrink:0; color:#15803d; border-color:#16a34a; font-size:12px; padding:5px 11px;">⬇ Redline</button>
+          <button class="btn-ghost" @click="downloadCsv(f.id)" :disabled="!fileAllDone(f.id)" style="flex-shrink:0; font-size:12px; padding:5px 11px;">⬇ CSV</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Bundle download section (shown when 2+ files loaded, unlocked when all are done) -->
+    <div x-show="files.length > 1" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--divider);">
+      <div style="font-size:13px; font-weight:600; margin-bottom:10px;">Download All Files</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <button class="btn-success" @click="downloadAll('clean')" :disabled="!allDone" style="font-size:12px; padding:6px 13px;">⬇ All Clean (.zip)</button>
+        <button class="btn-ghost" @click="downloadAll('redline')" :disabled="!allDone" style="font-size:12px; padding:6px 13px; color:#15803d; border-color:#16a34a;">⬇ All Redline (.zip)</button>
+        <button class="btn-ghost" @click="downloadCsv(null)" :disabled="!allDone" style="font-size:12px; padding:6px 13px;">⬇ All CSV</button>
+      </div>
+      <p class="hint" style="margin-top:8px;">All files are bundled into a single ZIP. Only available after all documents are fully archived.</p>
+    </div>
+
+  </div>
+
+  <!-- Sticky archive action bar — lives INSIDE x-data scope so Alpine bindings work -->
+  <div x-show="urls.filter(u => !u.skip && u.selected && (u.status === 'pending' || u.status === 'archiving')).length > 0 || archiving"
+       x-transition:enter="transition ease-out duration-150"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-100"
+       x-transition:leave-end="opacity-0"
+       style="position:fixed; bottom:0; left:0; right:0; padding:12px 24px; background:var(--surface); border-top:1px solid var(--border); z-index:200; box-shadow:0 -4px 16px rgba(0,0,0,0.1);">
+    <div style="max-width:680px; margin:0 auto; display:flex; align-items:center; gap:14px;">
+
+      <!-- State A: ready to archive (not yet started) -->
+      <template x-if="!archiving">
+        <div style="display:flex; align-items:center; gap:14px; width:100%;">
+          <span style="font-size:13px; color:var(--text-muted); flex:1;">
+            <strong x-text="urls.filter(u => !u.skip && u.selected && u.status === 'pending').length" style="color:var(--text);"></strong>
+            URL(s) selected
+          </span>
+          <button class="btn-primary" @click="archiveSelected" style="padding:8px 22px; font-size:13px; flex-shrink:0;">
+            Archive Selected
+          </button>
+        </div>
+      </template>
+
+      <!-- State B: archiving in progress — show live progress -->
+      <template x-if="archiving">
+        <div style="display:flex; align-items:center; gap:12px; width:100%;">
+          <span style="font-size:13px; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">
+            Archiving… <strong x-text="doneCount" style="color:var(--text);"></strong> / <strong x-text="urls.filter(u=>!u.skip&&u.selected).length" style="color:var(--text);"></strong>
+          </span>
+          <div class="progress-bar" style="flex:1; margin:0;">
+            <div class="progress-fill" :style="`width: ${progress}%`"></div>
+          </div>
+          <span x-show="errorCount > 0" style="font-size:12px; color:#dc2626; white-space:nowrap; flex-shrink:0;" x-text="`${errorCount} error(s)`"></span>
+        </div>
+      </template>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer style="max-width:680px; margin:0 auto; padding:28px 20px 48px; display:flex; align-items:center; justify-content:center;">
+  <p style="font-size:12px; color:var(--text-faint);">
+    Made by <a href="https://kirinchang.com" target="_blank" rel="noopener noreferrer"
+               style="color:var(--text-muted); text-decoration:underline; text-underline-offset:2px;">Kirin Chang</a>
+  </p>
+</footer>
+
+<!-- In-page completion toast -->
+<div x-show="toast" x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-150" x-transition:leave-end="opacity-0"
+     :class="`toast toast-${toast?.type || 'success'}`"
+     x-text="toast?.msg" style="display:none;">
+</div>
+
+<script>
+const W_NS  = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const R_NS  = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const API   = 'https://api.perma.cc/v1';
+const DELAY = 600; // ms between archive requests
+
+function app() {
+  return {
+    // Auth — never persisted
+    apiKey:       '',
+    rememberKey:  false, // opt-in to saving API key in localStorage
+    user:         null,
+    orgs:         [],
+    connecting:   false,
+    connectError: '',
+
+    // Folder
+    selectedFolderIdx: 0,   // index into folderOptions
+    folderOptions:     [],  // [{label, desc, folderId, badge, badgeClass}]
+
+    // Files (multi-file support)
+    files:     [],  // [{id, name, originalFile, zip}]
+    fileError: '',
+    dragging:  false,
+    permaCache:{},  // url → permaUrl, shared across files to avoid duplicate API calls
+
+    // URLs: flat array across all files; each item has fileId
+    urls: [],
+
+    archiving:       false,
+    darkMode:        false,
+    notifyWhenDone:  false, // user-opted-in desktop notification
+    toast:           null,  // { msg, type } — in-page completion banner
+
+    init() {
+      // Restore API key across sessions (stays local — never sent anywhere except perma.cc API)
+      // API key: only persist if user opted in
+      const savedKey = localStorage.getItem('perma-api-key');
+      if (savedKey) { this.apiKey = savedKey; this.rememberKey = true; }
+      this.$watch('rememberKey', remember => {
+        if (remember) {
+          if (this.apiKey.trim()) localStorage.setItem('perma-api-key', this.apiKey.trim());
+        } else {
+          localStorage.removeItem('perma-api-key');
+        }
+      });
+      this.$watch('apiKey', val => {
+        if (this.rememberKey) localStorage.setItem('perma-api-key', val.trim());
+      });
+
+      // Restore notification preference
+      this.notifyWhenDone = localStorage.getItem('perma-notify') === '1';
+      this.$watch('notifyWhenDone', val => localStorage.setItem('perma-notify', val ? '1' : '0'));
+
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      this.darkMode = mq.matches;
+      mq.addEventListener('change', e => { this.darkMode = e.matches; });
+      this.$watch('darkMode', v => document.body.classList.toggle('dark', v));
+      document.body.classList.toggle('dark', this.darkMode);
+    },
+
+    get doneCount()  { return this.urls.filter(u => u.selected && ['done','fallback'].includes(u.status)).length; },
+    get errorCount() { return this.urls.filter(u => u.selected && u.status === 'error').length; },
+    get allDone() {
+      const active = this.urls.filter(u => !u.skip && u.selected);
+      return active.length > 0 && active.every(u => ['done','error','fallback','existing'].includes(u.status));
+    },
+    get progress() {
+      const active = this.urls.filter(u => !u.skip && u.selected);
+      if (active.length === 0) return 0;
+      return Math.round((this.doneCount / active.length) * 100);
+    },
+
+    toggleAll(fileId = null) {
+      // Exclude 'existing' items; optionally scoped to one file.
+      const active = this.urls.filter(u => !u.skip && u.status !== 'existing' &&
+        (fileId == null || u.fileId === fileId));
+      const allSelected = active.every(u => u.selected);
+      active.forEach(u => u.selected = !allSelected);
+    },
+
+    fileUrls(fileId) {
+      return this.urls.filter(u => u.fileId === fileId && !u.skip);
+    },
+
+    fileAllDone(fileId) {
+      const active = this.urls.filter(u => u.fileId === fileId && !u.skip && u.selected);
+      return active.length > 0 && active.every(u =>
+        ['done','error','fallback','existing'].includes(u.status));
+    },
+
+    fileDoneCount(fileId) {
+      return this.urls.filter(u => u.fileId === fileId && u.selected &&
+        ['done','fallback'].includes(u.status)).length;
+    },
+
+    // ── Auth ──────────────────────────────────────────────────────────────
+    async connect() {
+      this.connecting   = true;
+      this.connectError = '';
+      try {
+        const key = this.apiKey.trim();
+        const headers = { Authorization: `ApiKey ${key}` };
+
+        const uRes = await fetch(`${API}/user/`, { headers });
+
+        if (!uRes.ok) {
+          const body = await uRes.json().catch(() => ({}));
+          throw new Error(body.detail || `Invalid API key (HTTP ${uRes.status})`);
+        }
+
+        this.user = await uRes.json();
+
+        // Build folder options from top_level_folders on the user object
+        // Each folder has: id, name, organization (null = personal)
+        this.folderOptions = (this.user.top_level_folders ?? []).map(f => ({
+          label:      f.name,
+          folderId:   f.id,
+          badge:      f.organization ? 'Institutional' : 'Personal',
+          badgeClass: f.organization ? 'badge-org' : 'badge-personal',
+          desc:       f.organization
+            ? `${f.registrar_name ?? 'Organization'} — quota per plan (registrars: unlimited)`
+            : 'Uses your personal quota (free: 10 links/month)',
+        }));
+
+        // Default to first institutional folder if available, else index 0
+        const firstOrgIdx = this.folderOptions.findIndex(o => o.badge === 'Institutional');
+        this.selectedFolderIdx = firstOrgIdx >= 0 ? firstOrgIdx : 0;
+      } catch (e) {
+        this.connectError = e.message;
+      } finally {
+        this.connecting = false;
+      }
+    },
+
+    disconnect() {
+      Object.assign(this, {
+        apiKey: '', user: null, orgs: [], connectError: '',
+        selectedFolderIdx: 0, folderOptions: [],
+        files: [], fileError: '', urls: [], permaCache: {},
+      });
+    },
+
+    // ── File handling ─────────────────────────────────────────────────────
+    onDrop(e) {
+      this.dragging = false;
+      for (const file of Array.from(e.dataTransfer.files)) this.addFile(file);
+    },
+
+    loadFiles(e) {
+      for (const file of Array.from(e.target.files)) this.addFile(file);
+      e.target.value = ''; // reset so same file can be re-added after removal
+    },
+
+    async addFile(file) {
+      if (!file.name.endsWith('.docx')) {
+        this.fileError = `"${file.name}" is not a .docx file — skipped.`;
+        return;
+      }
+      // Prevent duplicate filenames
+      if (this.files.some(f => f.name === file.name)) {
+        this.fileError = `"${file.name}" is already loaded.`;
+        return;
+      }
+      this.fileError = '';
+      const id = 'f' + Date.now() + Math.random().toString(36).slice(2);
+      const fileObj = { id, name: file.name, originalFile: file, zip: null, collapsed: false };
+      this.files.push(fileObj);
+      try {
+        fileObj.zip = await JSZip.loadAsync(file);
+        await this.extractUrlsFromFile(fileObj);
+      } catch (e) {
+        this.fileError = `Could not read "${file.name}": ${e.message}`;
+        this.files = this.files.filter(f => f.id !== id);
+      }
+    },
+
+    removeFile(fileId) {
+      this.files = this.files.filter(f => f.id !== fileId);
+      this.urls  = this.urls.filter(u => u.fileId !== fileId);
+    },
+
+    // ── URL extraction ────────────────────────────────────────────────────
+    async extractUrlsFromFile(fileObj) {
+      const URL_RE = /https?:\/\/[^\s<>"')\]]+/g;
+
+      // Internal / non-archivable URL patterns to skip
+      const SKIP_HOSTS = [
+        'zotero.org',        // Zotero internal library links
+        'mendeley.com',      // Mendeley internal links
+        'endnote.com',       // EndNote internal links
+        'localhost',
+        '127.0.0.1',
+      ];
+      const shouldSkip = url => {
+        try {
+          const host = new URL(url).hostname;
+          return SKIP_HOSTS.some(h => host === h || host.endsWith('.' + h));
+        } catch { return false; }
+      };
+
+      const targets = [
+        { xml: 'word/footnotes.xml', rels: 'word/_rels/footnotes.xml.rels', label: 'Fn.', noteEl: 'footnote' },
+        { xml: 'word/endnotes.xml',  rels: 'word/_rels/endnotes.xml.rels',  label: 'En.', noteEl: 'endnote'  },
+        { xml: 'word/document.xml',  rels: 'word/_rels/document.xml.rels',  label: 'Body', noteEl: null      },
+      ];
+
+      const urlMap = new Map();
+      const ensure = url => {
+        if (!urlMap.has(url)) urlMap.set(url, { hlOccs: [], textOccs: [] });
+        return urlMap.get(url);
+      };
+      const isInsideHyperlink = node => {
+        let p = node.parentNode;
+        while (p) { if (p.localName === 'hyperlink') return true; p = p.parentNode; }
+        return false;
+      };
+      // Get text of the ancestor footnote/endnote/paragraph containing this node
+      const getContainerText = (node, noteEl) => {
+        let p = node.parentNode;
+        while (p) {
+          const ln = p.localName;
+          if (noteEl && ln === noteEl) break;
+          if (!noteEl && ln === 'p') break;
+          p = p.parentNode;
+        }
+        if (!p) return '';
+        return Array.from(p.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('');
+      };
+
+      const getNoteNum = (node, noteEl) => {
+        if (!noteEl) return null;
+        let p = node.parentNode;
+        while (p) {
+          if (p.localName === noteEl) {
+            const id = p.getAttributeNS(W_NS, 'id') || p.getAttribute('w:id');
+            return id && +id > 0 ? +id : null;
+          }
+          p = p.parentNode;
+        }
+        return null;
+      };
+
+      const parser = new DOMParser();
+      for (const t of targets) {
+        const xmlFile = fileObj.zip.file(t.xml);
+        if (!xmlFile) continue;
+        const xmlStr = await xmlFile.async('string');
+        const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+
+        // 1. Hyperlinks
+        const relsFile = fileObj.zip.file(t.rels);
+        if (relsFile) {
+          const relsDoc = parser.parseFromString(await relsFile.async('string'), 'application/xml');
+          const ridToUrl = {};
+          for (const rel of relsDoc.getElementsByTagName('Relationship')) {
+            if (rel.getAttribute('Type')?.includes('hyperlink') &&
+                rel.getAttribute('TargetMode') === 'External')
+              ridToUrl[rel.getAttribute('Id')] = rel.getAttribute('Target');
+          }
+          for (const hl of xmlDoc.getElementsByTagNameNS(W_NS, 'hyperlink')) {
+            const rId = hl.getAttributeNS(R_NS, 'id');
+            if (!rId || !ridToUrl[rId]) continue;
+            const url = ridToUrl[rId].replace(/\/$/, ''); // normalize trailing slash
+            if (!url.startsWith('http') || shouldSkip(url)) continue;
+            const num = getNoteNum(hl, t.noteEl);
+            const ctx = getContainerText(hl, t.noteEl);
+            ensure(url).hlOccs.push({ file: t.xml, rId, label: t.label, num, ctx });
+          }
+        }
+
+        // 2. Plain-text URLs — scan at paragraph level so split-across-runs URLs are found whole
+        for (const para of xmlDoc.getElementsByTagNameNS(W_NS, 'p')) {
+          // Get text excluding hyperlink display text (those are handled separately)
+          const paraClone = para.cloneNode(true);
+          Array.from(paraClone.getElementsByTagNameNS(W_NS, 'hyperlink')).forEach(hl => hl.remove());
+          Array.from(paraClone.getElementsByTagNameNS(W_NS, 'del')).forEach(d => d.remove());
+          Array.from(paraClone.getElementsByTagNameNS(W_NS, 'instrText')).forEach(f => f.remove());
+          const text = paraClone.textContent || '';
+          for (const match of text.matchAll(URL_RE)) {
+            const rawUrl = match[0].replace(/[.,;:!?]+$/, '');
+            const url = rawUrl.replace(/\/$/, ''); // normalize trailing slash for dedup
+            if (!url.startsWith('http') || shouldSkip(url)) continue;
+            const num = getNoteNum(para, t.noteEl);
+            const ctx = getContainerText(para, t.noteEl);
+            ensure(url).textOccs.push({ file: t.xml, label: t.label, num, ctx, originalUrl: rawUrl });
+          }
+        }
+      }
+
+      const newItems = Array.from(urlMap.entries()).map(([url, d]) => {
+        // Build location label e.g. "Fn. 3, 7 · Body"
+        const parts = new Map();
+        [...d.hlOccs, ...d.textOccs].forEach(o => {
+          if (!parts.has(o.label)) parts.set(o.label, new Set());
+          if (o.num != null) parts.get(o.label).add(o.num);
+        });
+        const locationLabel = [...parts.entries()].map(([lbl, nums]) =>
+          nums.size ? `${lbl} ${[...nums].sort((a,b)=>a-b).join(', ')}` : lbl
+        ).join(' · ');
+
+        // First available context text (full footnote/paragraph text)
+        const firstCtx = (d.hlOccs[0] || d.textOccs[0])?.ctx || '';
+
+        return {
+          url,
+          fileId:        fileObj.id,
+          occurrences:   d.hlOccs,
+          textOriginals: d.textOccs.map(o => ({ file: o.file, originalUrl: o.originalUrl || url })),
+          textFiles:     [...new Set(d.textOccs.map(o => o.file))],
+          textOnly:      d.hlOccs.length === 0,
+          locationLabel,
+          contextText:   firstCtx,
+          expanded:      false,
+          selected:      !firstCtx.toLowerCase().includes('perma.cc'),
+          skip:          url.includes('perma.cc'),
+          existingPermaUrl: (() => {
+            if (url.includes('perma.cc')) return null;
+            const m = firstCtx.match(/https?:\/\/perma\.cc\/[A-Z0-9]{4}-[A-Z0-9]{4}/i);
+            return m ? m[0] : null;
+          })(),
+          status:        firstCtx.toLowerCase().includes('perma.cc') && !url.includes('perma.cc')
+                           ? 'existing' : 'pending',
+          permaUrl:      null,
+          error:         null,
+          waybkUrl:      null,
+          waybkDate:     null,
+        };
+      });
+      // Append to global url list (dedup by url+fileId)
+      this.urls.push(...newItems);
+    },
+
+    previewText(item) {
+      const perma = item.permaUrl ? ` [${item.permaUrl}]` : ' [perma.cc/????-????]';
+      const base  = item.contextText || item.url;
+      return base.includes(item.url)
+        ? base.replace(item.url, item.url + perma)
+        : base + '\n' + item.url + perma;
+    },
+
+    // ── Archiving ─────────────────────────────────────────────────────────
+    // In-page toast: shows a brief banner at the bottom of the viewport.
+    showToast(msg, type = 'success') {
+      this.toast = { msg, type };
+      setTimeout(() => { if (this.toast?.msg === msg) this.toast = null; }, 5000);
+    },
+
+    // Called when user checks the "Notify when done" checkbox.
+    async requestNotify() {
+      if (typeof Notification === 'undefined' || Notification.permission === 'denied') {
+        this.notifyWhenDone = false;
+        this.showToast('OS notifications unavailable — an in-page banner will appear instead.', 'info');
+        return;
+      }
+      if (Notification.permission === 'default') {
+        const result = await Notification.requestPermission();
+        if (result !== 'granted') { this.notifyWhenDone = false; return; }
+      }
+      // Test fire — if it silently fails (e.g. Safari on localhost) that is OK;
+      // the in-page toast always fires regardless.
+      try { new Notification('PermaDrop', { body: 'Notifications enabled ✓' }); } catch { /**/ }
+    },
+
+    async archiveSelected() {
+      this.archiving = true;
+      const key = this.apiKey.trim();
+
+      for (const item of this.urls) {
+        if (item.skip || !item.selected || ['done','fallback','existing'].includes(item.status)) continue;
+
+        item.status = 'archiving';
+        try {
+          const body = { url: item.url };
+          const folderId = this.folderOptions[this.selectedFolderIdx]?.folderId;
+          if (folderId) body.folder = folderId;
+
+          const res = await fetch(`${API}/archives/`, {
+            method:  'POST',
+            headers: { Authorization: `ApiKey ${key}`, 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || err.url?.[0] || `HTTP ${res.status}`);
+          }
+          const data    = await res.json();
+          item.permaUrl = `https://perma.cc/${data.guid}`;
+          item.status   = 'done';
+        } catch (e) {
+          item.status = 'error';
+          item.error  = e.message;
+          await this.checkWayback(item);
+        }
+
+        await new Promise(r => setTimeout(r, DELAY));
+      }
+
+      this.archiving = false;
+
+      const _done = this.urls.filter(u => u.selected && ['done','fallback'].includes(u.status)).length;
+      const _err  = this.urls.filter(u => u.selected && u.status === 'error').length;
+      const _msg  = _err > 0 ? `${_done} archived · ${_err} failed` : `All ${_done} URLs archived ✓`;
+
+      // Always show in-page toast (works in every browser / localhost)
+      this.showToast(_msg, _err > 0 ? 'warn' : 'success');
+
+      // Also fire OS notification if user opted in (bonus; silently ignored if not supported)
+      if (this.notifyWhenDone && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try { new Notification('PermaDrop', { body: _msg }); } catch { /**/ }
+      }
+    },
+
+    // Query Wayback Machine availability and populate item.waybkUrl / waybkDate
+    async checkWayback(item) {
+      try {
+        const res = await fetch(
+          `https://archive.org/wayback/availability?url=${encodeURIComponent(item.url)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const snap = data.archived_snapshots?.closest;
+        if (snap?.available && snap?.url) {
+          item.waybkUrl  = snap.url;
+          const ts = snap.timestamp || '';
+          if (ts.length >= 8) {
+            const d = new Date(`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}`);
+            item.waybkDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+          }
+        }
+      } catch { /* silent */ }
+    },
+
+    useWayback(item) {
+      item.permaUrl = item.waybkUrl;
+      item.status   = 'fallback';
+    },
+
+    async retryItem(item) {
+      if (this.archiving) return;
+      const key = this.apiKey.trim();
+      if (!key) return;
+      this.archiving  = true;
+      item.status     = 'archiving';
+      item.error      = null;
+      item.permaUrl   = null;
+      item.waybkUrl   = null;
+      item.waybkDate  = null;
+      try {
+        const body = { url: item.url };
+        const folderId = this.folderOptions[this.selectedFolderIdx]?.folderId;
+        if (folderId) body.folder = folderId;
+        const res = await fetch(`${API}/archives/`, {
+          method:  'POST',
+          headers: { Authorization: `ApiKey ${key}`, 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || err.url?.[0] || `HTTP ${res.status}`);
+        }
+        const data    = await res.json();
+        item.permaUrl = `https://perma.cc/${data.guid}`;
+        item.status   = 'done';
+      } catch (e) {
+        item.status = 'error';
+        item.error  = e.message;
+        await this.checkWayback(item);
+      }
+      this.archiving = false;
+    },
+
+    // ── Download modified DOCX ────────────────────────────────────────────
+    async download(mode = 'clean', fileId = null) {
+      const fileObj = this.files.find(f => f.id === fileId);
+      if (!fileObj?.zip) return;
+
+      const redline = mode === 'redline';
+      const date    = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+      const author  = 'Perma Archiver by Kirin';
+
+      // Load a fresh zip each time so clean and redline don't interfere
+      const workZip = await JSZip.loadAsync(fileObj.originalFile);
+
+      // Find max existing w:id in the document to avoid revision ID conflicts
+      let insId = 1;
+      if (redline) {
+        const scanPaths = ['word/document.xml', 'word/footnotes.xml', 'word/endnotes.xml'];
+        for (const p of scanPaths) {
+          const f = workZip.file(p);
+          if (!f) continue;
+          const s = await f.async('string');
+          for (const m of s.matchAll(/w:id="(\d+)"/g)) {
+            const n = parseInt(m[1], 10);
+            if (n > insId) insId = n;
+          }
+        }
+        insId += 1; // start from max + 1
+      }
+
+      // Build per-file modification maps
+      const fileMods = {};
+      const ensureFile = f => {
+        if (!fileMods[f]) fileMods[f] = { rids: {}, textUrls: {} };
+        return fileMods[f];
+      };
+
+      for (const item of this.urls.filter(u => u.fileId === fileId && u.status === 'done' && u.selected)) {
+        for (const occ of item.occurrences) {
+          ensureFile(occ.file).rids[occ.rId] = item.permaUrl;
+        }
+        if (item.textOnly) {
+          for (const to of (item.textOriginals || [])) {
+            ensureFile(to.file).textUrls[to.originalUrl] = item.permaUrl;
+          }
+        }
+      }
+
+      const parser     = new DOMParser();
+      const serializer = new XMLSerializer();
+
+      // Walk up from a node to the direct child of <w:p> (or equivalent block),
+      // so we can insert at paragraph level and never nest inside existing <w:ins>/<w:del>.
+      const getParaLevelRef = (node) => {
+        let ref = node, par = node.parentNode;
+        while (par && par.localName !== 'p' && par.localName !== 'body' &&
+               par.localName !== 'footnote' && par.localName !== 'endnote' &&
+               par.localName !== 'tc') {
+          ref = par; par = par.parentNode;
+        }
+        return { parent: par || node.parentNode, after: ref };
+      };
+
+      // True if node is inside any element whose localName is in `names`
+      const isInside = (node, names) => {
+        let p = node.parentNode;
+        while (p) { if (names.includes(p.localName)) return true; p = p.parentNode; }
+        return false;
+      };
+
+      // Last <w:r> found anywhere inside el (for grabbing formatting from a hyperlink's runs)
+      const lastRunIn = (el) => {
+        const rs = Array.from(el.getElementsByTagNameNS ? el.getElementsByTagNameNS(W_NS, 'r') : []);
+        return rs[rs.length - 1] || null;
+      };
+
+      // Last <w:r> that precedes refNode among its siblings (gives us the plain-text
+      // formatting of the content immediately before our insertion point).
+      const prevRunOf = (refNode) => {
+        let sib = refNode.previousSibling;
+        while (sib) {
+          if (sib.localName === 'r') return sib;
+          const rs = sib.getElementsByTagNameNS ? Array.from(sib.getElementsByTagNameNS(W_NS, 'r')) : [];
+          if (rs.length) return rs[rs.length - 1];
+          sib = sib.previousSibling;
+        }
+        return null;
+      };
+
+      // Splits any trailing non-URL content ("; ", " (last visited…)", etc.) out of a
+      // hyperlink element so that our perma insertion lands BETWEEN the URL text and
+      // the following citation punctuation — not after the semicolon.
+      // Skipped when hl is already inside an existing <w:ins> (nesting constraint).
+      const splitHyperlinkTrailing = (hl, origUrl, xmlDoc) => {
+        if (!origUrl || isInside(hl, ['ins'])) return;
+
+        const runs = Array.from(hl.getElementsByTagNameNS(W_NS, 'r'));
+        if (!runs.length) return;
+
+        const texts    = runs.map(r =>
+          Array.from(r.getElementsByTagNameNS(W_NS, 't')).map(t => t.textContent).join('')
+        );
+        const combined = texts.join('');
+
+        // Find where the URL ends in the hyperlink display text.
+        // The rels Target may or may not have a trailing slash — check both.
+        let urlEnd = -1;
+        for (const variant of [origUrl, origUrl + '/']) {
+          const idx = combined.indexOf(variant);
+          if (idx !== -1) { urlEnd = idx + variant.length; break; }
+        }
+        if (urlEnd === -1 || urlEnd >= combined.length) return; // no trailing content
+
+        const hlParent = hl.parentNode;
+        const hlAfter  = hl.nextSibling; // moved content will be inserted before this
+
+        // Locate the run that straddles urlEnd
+        let pos = 0, splitIdx = -1, splitChar = -1;
+        for (let i = 0; i < runs.length; i++) {
+          const next = pos + texts[i].length;
+          if (pos <= urlEnd && urlEnd <= next) { splitIdx = i; splitChar = urlEnd - pos; break; }
+          pos = next;
+        }
+        if (splitIdx === -1) return;
+
+        // Move runs AFTER splitIdx fully outside hl (reverse order preserves DOM sequence)
+        for (let i = runs.length - 1; i > splitIdx; i--) {
+          let node = runs[i];
+          while (node.parentNode && node.parentNode !== hl) node = node.parentNode;
+          if (node.parentNode === hl) { hl.removeChild(node); hlParent.insertBefore(node, hlAfter); }
+        }
+
+        // Handle the straddling run: if there is text AFTER the URL end, split it.
+        const splitRun = runs[splitIdx];
+        const tEls = Array.from(splitRun.getElementsByTagNameNS(W_NS, 't'));
+        if (tEls.length === 1 && splitChar < tEls[0].textContent.length) {
+          const full  = tEls[0].textContent;
+          const keep  = full.slice(0, splitChar);
+          const trail = full.slice(splitChar);
+
+          if (!keep) {
+            // Entire run is trailing — move it outside
+            let node = splitRun;
+            while (node.parentNode && node.parentNode !== hl) node = node.parentNode;
+            if (node.parentNode === hl) { hl.removeChild(node); hlParent.insertBefore(node, hlAfter); }
+          } else {
+            // Shorten in-hyperlink run; create a new run outside for the trailing text
+            tEls[0].textContent = keep;
+            const newRun = xmlDoc.createElementNS(W_NS, 'w:r');
+            const srcRPr = splitRun.getElementsByTagNameNS(W_NS, 'rPr')[0];
+            if (srcRPr) newRun.appendChild(srcRPr.cloneNode(true));
+            const newT = xmlDoc.createElementNS(W_NS, 'w:t');
+            newT.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+            newT.textContent = trail;
+            newRun.appendChild(newT);
+            hlParent.insertBefore(newRun, hlAfter);
+          }
+        }
+      };
+
+      // Build the insertion node:
+      //   clean:   <w:hyperlink r:id="…"><w:r>…</w:r></w:hyperlink>
+      //   redline: <w:hyperlink r:id="…"><w:ins …><w:r>…</w:r></w:ins></w:hyperlink>
+      // Styling is inherited from refRun (hyperlink style tokens stripped) so the text
+      // looks like plain body text but is clickable in Word.
+      // relsCtx: { doc: relsXmlDoc, counter: Number } — receives new Relationship entries.
+      const makeNode = (xmlDoc, permaUrl, refRun = null, relsCtx = null) => {
+        const run = xmlDoc.createElementNS(W_NS, 'w:r');
+        if (refRun) {
+          const srcRPr = refRun.getElementsByTagNameNS(W_NS, 'rPr')[0];
+          if (srcRPr) {
+            const rPr = srcRPr.cloneNode(true);
+            // Strip hyperlink character style so inserted text isn't blue/underlined.
+            for (const rs of Array.from(rPr.getElementsByTagNameNS(W_NS, 'rStyle'))) {
+              const v = (rs.getAttributeNS(W_NS, 'val') || rs.getAttribute('w:val') || '').toLowerCase();
+              if (v.includes('hyperlink') || v.includes('internet')) rs.parentNode.removeChild(rs);
+            }
+            for (const c of Array.from(rPr.getElementsByTagNameNS(W_NS, 'color'))) {
+              const tc = (c.getAttributeNS(W_NS, 'themeColor') || c.getAttribute('w:themeColor') || '').toLowerCase();
+              if (tc.includes('hyperlink')) c.parentNode.removeChild(c);
+            }
+            run.appendChild(rPr);
+          }
+        }
+        const t = xmlDoc.createElementNS(W_NS, 'w:t');
+        t.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+        t.textContent = ` [${permaUrl}]`;
+        run.appendChild(t);
+
+        let inner = run;
+        if (redline) {
+          const ins = xmlDoc.createElementNS(W_NS, 'w:ins');
+          ins.setAttributeNS(W_NS, 'w:id',     String(insId++));
+          ins.setAttributeNS(W_NS, 'w:author', author);
+          ins.setAttributeNS(W_NS, 'w:date',   date);
+          ins.appendChild(run);
+          inner = ins;
+        }
+
+        if (relsCtx) {
+          // Register the external hyperlink relationship
+          const REL_PKG = 'http://schemas.openxmlformats.org/package/2006/relationships';
+          const rId  = `rIdP${relsCtx.counter++}`;
+          const rel  = relsCtx.doc.createElementNS(REL_PKG, 'Relationship');
+          rel.setAttribute('Id',         rId);
+          rel.setAttribute('Type',       'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink');
+          rel.setAttribute('Target',     permaUrl);
+          rel.setAttribute('TargetMode', 'External');
+          relsCtx.doc.documentElement.appendChild(rel);
+
+          const hyperlink = xmlDoc.createElementNS(W_NS, 'w:hyperlink');
+          hyperlink.setAttributeNS(R_NS, 'r:id', rId);
+          hyperlink.appendChild(inner);
+          return hyperlink;
+        }
+
+        return inner;
+      };
+
+      for (const [xmlPath, mods] of Object.entries(fileMods)) {
+        const xmlFile = workZip.file(xmlPath);
+        if (!xmlFile) continue;
+        let xmlStr = await xmlFile.async('string');
+
+        // Load (or synthesise) the rels file for this XML part so we can register
+        // new external hyperlink relationships for each inserted perma link.
+        const relsPath = xmlPath.replace('word/', 'word/_rels/').replace('.xml', '.xml.rels');
+        const relsFile = workZip.file(relsPath);
+        const relsStr  = relsFile
+          ? await relsFile.async('string')
+          : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+        const relsDoc = parser.parseFromString(relsStr, 'application/xml');
+        let relsStartCounter = 1;
+        for (const rel of Array.from(relsDoc.documentElement.children)) {
+          const m = (rel.getAttribute('Id') || '').match(/(\d+)$/);
+          if (m) relsStartCounter = Math.max(relsStartCounter, parseInt(m[1]) + 1);
+        }
+        const relsCtx = { doc: relsDoc, counter: relsStartCounter };
+
+        // rId → original Target URL (needed by splitHyperlinkTrailing)
+        const ridToOrigUrl = {};
+        for (const rel of Array.from(relsDoc.documentElement.children))
+          ridToOrigUrl[rel.getAttribute('Id') || ''] = rel.getAttribute('Target') || '';
+
+        // 1. Hyperlink insertions — always insert at paragraph level so we never
+        //    nest inside an existing <w:ins> (common in tracked-changes documents).
+        if (Object.keys(mods.rids).length > 0) {
+          const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+          for (const hl of Array.from(xmlDoc.getElementsByTagNameNS(W_NS, 'hyperlink'))) {
+            const hlRId = hl.getAttributeNS(R_NS, 'id');
+            if (!hlRId || !mods.rids[hlRId]) continue;
+            // Move any trailing citation text ("; ", " (last visited…)") out of the
+            // hyperlink element so our insertion lands right after the URL itself,
+            // not after the semicolon that separates it from the next citation.
+            splitHyperlinkTrailing(hl, ridToOrigUrl[hlRId], xmlDoc);
+            const { parent, after } = getParaLevelRef(hl);
+            // Use the run BEFORE the hyperlink for formatting — that's the surrounding
+            // plain text, not the blue/underlined hyperlink display text.
+            const refRun = prevRunOf(after) || lastRunIn(after);
+            const node = makeNode(xmlDoc, mods.rids[hlRId], refRun, relsCtx);
+            parent.insertBefore(node, after.nextSibling);
+          }
+          xmlStr = serializer.serializeToString(xmlDoc);
+        }
+
+        // 2. Plain-text URLs — paragraph-level DOM approach.
+        //    Handles URLs split across multiple <w:t> runs and avoids inserting
+        //    inside existing <w:ins>/<w:del> blocks (tracked-changes documents).
+        if (Object.keys(mods.textUrls).length > 0) {
+          const xmlDoc2 = parser.parseFromString(xmlStr, 'application/xml');
+          for (const [url, permaUrl] of Object.entries(mods.textUrls)) {
+            for (const para of Array.from(xmlDoc2.getElementsByTagNameNS(W_NS, 'p'))) {
+              // Collect eligible runs: not inside instrText, hyperlink, or del
+              const eligible = [];
+              for (const r of Array.from(para.getElementsByTagNameNS(W_NS, 'r'))) {
+                if (isInside(r, ['instrText', 'hyperlink', 'del'])) continue;
+                const tEls = Array.from(r.getElementsByTagNameNS(W_NS, 't'));
+                if (!tEls.length) continue;
+                eligible.push({ r, text: tEls.map(t => t.textContent).join('') });
+              }
+              if (!eligible.length) continue;
+
+              // Concatenate run texts to find URLs that span multiple runs
+              const combined = eligible.map(e => e.text).join('');
+              let from = 0;
+              while (true) {
+                const idx = combined.indexOf(url, from);
+                if (idx === -1) break;
+                const end = idx + url.length;
+
+                // Find the run that contains the END of this url occurrence
+                let pos = 0, endRun = null;
+                for (const e of eligible) {
+                  pos += e.text.length;
+                  if (pos >= end) { endRun = e; break; }
+                }
+                if (!endRun) break;
+
+                // Insert at paragraph level (never inside existing <w:ins>/<w:del>).
+                const { parent, after } = getParaLevelRef(endRun.r);
+                const node = makeNode(xmlDoc2, permaUrl, endRun.r, relsCtx);
+                parent.insertBefore(node, after.nextSibling);
+
+                from = end; // advance past this match
+              }
+            }
+          }
+          xmlStr = serializer.serializeToString(xmlDoc2);
+        }
+
+        workZip.file(xmlPath, xmlStr);
+
+        // Write back rels only if we actually added new relationships
+        if (relsCtx.counter > relsStartCounter) {
+          workZip.file(relsPath, serializer.serializeToString(relsDoc));
+        }
+      }
+
+      const blob = await workZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      const baseName = fileObj.name.replace(/\.docx$/i, '');
+      const suffix = redline ? '_perma_redline' : '_perma_clean';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${baseName}${suffix}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    },
+
+    // ── Download all files as a single ZIP bundle ─────────────────────────
+    async downloadAll(mode = 'clean') {
+      const bundleZip = new JSZip();
+      for (const fileObj of this.files) {
+        if (!fileObj.zip) continue;
+        const redline = mode === 'redline';
+        const date    = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+        const author  = 'Perma Archiver by Kirin';
+        const workZip = await JSZip.loadAsync(fileObj.originalFile);
+
+        let insId = 1;
+        if (redline) {
+          const scanPaths = ['word/document.xml', 'word/footnotes.xml', 'word/endnotes.xml'];
+          for (const p of scanPaths) {
+            const f = workZip.file(p);
+            if (!f) continue;
+            const s = await f.async('string');
+            for (const m of s.matchAll(/w:id="(\d+)"/g)) {
+              const n = parseInt(m[1], 10);
+              if (n > insId) insId = n;
+            }
+          }
+          insId += 1;
+        }
+
+        const fileMods = {};
+        const ensureFile = f => { if (!fileMods[f]) fileMods[f] = { rids: {}, textUrls: {} }; return fileMods[f]; };
+
+        for (const item of this.urls.filter(u => u.fileId === fileObj.id && u.status === 'done' && u.selected)) {
+          for (const occ of item.occurrences) ensureFile(occ.file).rids[occ.rId] = item.permaUrl;
+          if (item.textOnly) for (const to of (item.textOriginals || [])) ensureFile(to.file).textUrls[to.originalUrl] = item.permaUrl;
+        }
+
+        const parser     = new DOMParser();
+        const serializer = new XMLSerializer();
+        const W_NS  = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        const R_NS  = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+        const getParaLevelRef = (node) => { let ref = node, par = node.parentNode; while (par && par.localName !== 'p' && par.localName !== 'body' && par.localName !== 'footnote' && par.localName !== 'endnote' && par.localName !== 'tc') { ref = par; par = par.parentNode; } return { parent: par || node.parentNode, after: ref }; };
+        const isInside = (node, names) => { let p = node.parentNode; while (p) { if (names.includes(p.localName)) return true; p = p.parentNode; } return false; };
+        const lastRunIn = (el) => { const rs = Array.from(el.getElementsByTagNameNS ? el.getElementsByTagNameNS(W_NS, 'r') : []); return rs[rs.length - 1] || null; };
+        const prevRunOf = (refNode) => { let sib = refNode.previousSibling; while (sib) { if (sib.localName === 'r') return sib; const rs = sib.getElementsByTagNameNS ? Array.from(sib.getElementsByTagNameNS(W_NS, 'r')) : []; if (rs.length) return rs[rs.length - 1]; sib = sib.previousSibling; } return null; };
+
+        const makeNode = (xmlDoc, permaUrl, refRun = null, relsCtx = null) => {
+          const run = xmlDoc.createElementNS(W_NS, 'w:r');
+          if (refRun) {
+            const srcRPr = refRun.getElementsByTagNameNS(W_NS, 'rPr')[0];
+            if (srcRPr) {
+              const rPr = srcRPr.cloneNode(true);
+              for (const rs of Array.from(rPr.getElementsByTagNameNS(W_NS, 'rStyle'))) { const v = (rs.getAttributeNS(W_NS, 'val') || rs.getAttribute('w:val') || '').toLowerCase(); if (v.includes('hyperlink') || v.includes('internet')) rs.parentNode.removeChild(rs); }
+              for (const c of Array.from(rPr.getElementsByTagNameNS(W_NS, 'color'))) { const tc = (c.getAttributeNS(W_NS, 'themeColor') || c.getAttribute('w:themeColor') || '').toLowerCase(); if (tc.includes('hyperlink')) c.parentNode.removeChild(c); }
+              run.appendChild(rPr);
+            }
+          }
+          const t = xmlDoc.createElementNS(W_NS, 'w:t');
+          t.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+          t.textContent = ` [${permaUrl}]`;
+          run.appendChild(t);
+          let inner = run;
+          if (redline) {
+            const ins = xmlDoc.createElementNS(W_NS, 'w:ins');
+            ins.setAttributeNS(W_NS, 'w:id', String(insId++));
+            ins.setAttributeNS(W_NS, 'w:author', author);
+            ins.setAttributeNS(W_NS, 'w:date', date);
+            ins.appendChild(run);
+            inner = ins;
+          }
+          if (relsCtx) {
+            const REL_PKG = 'http://schemas.openxmlformats.org/package/2006/relationships';
+            const rId = `rIdP${relsCtx.counter++}`;
+            const rel = relsCtx.doc.createElementNS(REL_PKG, 'Relationship');
+            rel.setAttribute('Id', rId); rel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink');
+            rel.setAttribute('Target', permaUrl); rel.setAttribute('TargetMode', 'External');
+            relsCtx.doc.documentElement.appendChild(rel);
+            const hyperlink = xmlDoc.createElementNS(W_NS, 'w:hyperlink');
+            hyperlink.setAttributeNS(R_NS, 'r:id', rId);
+            hyperlink.appendChild(inner);
+            return hyperlink;
+          }
+          return inner;
+        };
+
+        for (const [xmlPath, mods] of Object.entries(fileMods)) {
+          const xmlFile = workZip.file(xmlPath);
+          if (!xmlFile) continue;
+          let xmlStr = await xmlFile.async('string');
+          const relsPath = xmlPath.replace('word/', 'word/_rels/').replace('.xml', '.xml.rels');
+          const relsFile = workZip.file(relsPath);
+          const relsStr = relsFile ? await relsFile.async('string') : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+          const relsDoc = parser.parseFromString(relsStr, 'application/xml');
+          let relsStartCounter = 1;
+          for (const rel of Array.from(relsDoc.documentElement.children)) { const m = (rel.getAttribute('Id') || '').match(/(\d+)$/); if (m) relsStartCounter = Math.max(relsStartCounter, parseInt(m[1]) + 1); }
+          const relsCtx = { doc: relsDoc, counter: relsStartCounter };
+          const ridToOrigUrl = {};
+          for (const rel of Array.from(relsDoc.documentElement.children)) ridToOrigUrl[rel.getAttribute('Id') || ''] = rel.getAttribute('Target') || '';
+
+          if (Object.keys(mods.rids).length > 0) {
+            const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+            for (const hl of Array.from(xmlDoc.getElementsByTagNameNS(W_NS, 'hyperlink'))) {
+              const hlRId = hl.getAttributeNS(R_NS, 'id');
+              if (!hlRId || !mods.rids[hlRId]) continue;
+              const { parent, after } = getParaLevelRef(hl);
+              const refRun = prevRunOf(after) || lastRunIn(after);
+              const node = makeNode(xmlDoc, mods.rids[hlRId], refRun, relsCtx);
+              parent.insertBefore(node, after.nextSibling);
+            }
+            xmlStr = serializer.serializeToString(xmlDoc);
+          }
+
+          if (Object.keys(mods.textUrls).length > 0) {
+            const xmlDoc2 = parser.parseFromString(xmlStr, 'application/xml');
+            for (const [url, permaUrl] of Object.entries(mods.textUrls)) {
+              for (const para of Array.from(xmlDoc2.getElementsByTagNameNS(W_NS, 'p'))) {
+                const eligible = [];
+                for (const r of Array.from(para.getElementsByTagNameNS(W_NS, 'r'))) {
+                  if (isInside(r, ['instrText', 'hyperlink', 'del'])) continue;
+                  const tEls = Array.from(r.getElementsByTagNameNS(W_NS, 't'));
+                  if (!tEls.length) continue;
+                  eligible.push({ r, text: tEls.map(t => t.textContent).join('') });
+                }
+                if (!eligible.length) continue;
+                const combined = eligible.map(e => e.text).join('');
+                let from = 0;
+                while (true) {
+                  const idx = combined.indexOf(url, from);
+                  if (idx === -1) break;
+                  const end = idx + url.length;
+                  let pos = 0, endRun = null;
+                  for (const e of eligible) { pos += e.text.length; if (pos >= end) { endRun = e; break; } }
+                  if (!endRun) break;
+                  const { parent, after } = getParaLevelRef(endRun.r);
+                  const node = makeNode(xmlDoc2, permaUrl, endRun.r, relsCtx);
+                  parent.insertBefore(node, after.nextSibling);
+                  from = end;
+                }
+              }
+            }
+            xmlStr = serializer.serializeToString(xmlDoc2);
+          }
+
+          workZip.file(xmlPath, xmlStr);
+          if (relsCtx.counter > relsStartCounter) workZip.file(relsPath, serializer.serializeToString(relsDoc));
+        }
+
+        const blob = await workZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const baseName = fileObj.name.replace(/\.docx$/i, '');
+        const suffix = redline ? '_perma_redline' : '_perma_clean';
+        bundleZip.file(`${baseName}${suffix}.docx`, blob);
+      }
+
+      const bundleBlob = await bundleZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      const suffix = mode === 'redline' ? '_redline' : '_clean';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(bundleBlob);
+      a.download = `perma_archive${suffix}_bundle.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    },
+
+    // ── CSV export ────────────────────────────────────────────────────────
+    buildCsvContent(fileId) {
+      const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const items = this.urls.filter(u => (fileId === null || u.fileId === fileId) && !u.skip);
+      const hasWayback = items.some(u => u.waybkUrl);
+      const headers = ['File', 'Location', 'Original URL', 'Perma.cc Link',
+        ...(hasWayback ? ['Wayback Machine Link'] : []),
+        'Status', 'Error', 'Full Citation'];
+      const rows = [headers];
+      for (const item of items) {
+        const row = [
+          this.files.find(f => f.id === item.fileId)?.name || '',
+          item.locationLabel,
+          item.url,
+          item.permaUrl || item.existingPermaUrl || '',
+          ...(hasWayback ? [item.waybkUrl || ''] : []),
+          item.status,
+          item.error || '',
+          item.contextText || '',
+        ];
+        rows.push(row);
+      }
+      return '\ufeff' + rows.map(r => r.map(esc).join(',')).join('\r\n');
+    },
+
+    async downloadCsv(fileId = null) {
+      // Multiple files with no specific fileId → ZIP of per-file CSVs
+      if (fileId === null && this.files.length > 1) {
+        const zip = new JSZip();
+        for (const f of this.files) {
+          const csv = this.buildCsvContent(f.id);
+          zip.file(f.name.replace(/\.docx$/i, '') + '_perma_report.csv', csv);
+        }
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'perma_reports.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        return;
+      }
+      // Single file or specific fileId
+      const csv = this.buildCsvContent(fileId);
+      const fileObj = fileId ? this.files.find(f => f.id === fileId) : this.files[0];
+      const baseName = fileObj ? fileObj.name.replace(/\.docx$/i, '') : 'archive';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${baseName}_perma_report.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    },
+  };
+}
+</script>
+</body>
+</html>
