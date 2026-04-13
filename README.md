@@ -47,10 +47,10 @@ No installation. No account beyond perma.cc. Just a [perma.cc API key](https://p
 flowchart TD
     A[Open permadrop.kirinchang.com] --> B[Paste perma.cc API key]
     B --> C[Choose archive folder]
-    C --> D[Upload .docx file(s)]
+    C --> D[Upload .docx files]
     D --> E[Select URLs to archive]
-    E --> F[Click 'Archive Selected']
-    F --> G[Download modified document(s)]
+    E --> F[Click Archive Selected]
+    F --> G[Download modified documents]
 ```
 
 ![PermaDrop Usage Demo](usage.gif)
