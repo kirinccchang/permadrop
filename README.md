@@ -4,7 +4,7 @@
 
 **Archive URLs in your Word documents to [perma.cc](https://perma.cc)** — creating permanent, tamper-proof links for legal citations.
 
-🔗 **[permadrop.kirinchang.com](https://permadrop.kirinchang.com)**
+🔗 **[permadrop.kirinchang.com](https://lawreview.tools/permadrop/)**
 
 ---
 
@@ -33,7 +33,7 @@ No installation. No account beyond perma.cc. Just a [perma.cc API key](https://p
 
 ## How to use
 
-1. Open [permadrop.kirinchang.com](https://permadrop.kirinchang.com)
+1. Open [permadrop.kirinchang.com](https://lawreview.tools/permadrop/)
 2. Paste your [perma.cc API key](https://perma.cc/settings/tools)
 3. Choose an archive folder
 4. Upload one or more `.docx` files
