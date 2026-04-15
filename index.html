@@ -218,6 +218,9 @@
       border: 1px solid var(--privacy-border); border-radius: 7px; padding: 10px 13px; margin-top: 6px;
     }
     .privacy-note p { font-size: 12px; color: var(--privacy-text); line-height: 1.5; }
+    .sister-banner { display: flex; align-items: center; gap: 10px; background: var(--preview-bg); border: 1px solid var(--border); border-radius: 7px; padding: 9px 13px; margin-top: 10px; }
+    .sister-banner p { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+    .sister-banner a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
     .dark-toggle { background: none; border: 1px solid var(--border); border-radius: 99px; padding: 4px 11px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
     .dark-toggle:hover { background: var(--hover-bg); }
     /* In-page toast */
@@ -366,6 +369,14 @@
 
     <div class="privacy-note" style="margin-top: 10px;">
       <p>Documents are read directly in your browser. No file upload. No server receives your content.</p>
+    </div>
+
+    <div class="sister-banner" style="margin-top:10px;">
+      <p>
+        Already archived your URLs? Check your supra, Id., and signal citations with
+        <a href="https://lawreview.tools/supradrop/" target="_blank" rel="noopener noreferrer">SupraDrop</a>,
+        the sister tool — bring the same .docx there.
+      </p>
     </div>
 
     <p class="error-msg" x-show="fileError" x-text="fileError"></p>
