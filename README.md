@@ -52,6 +52,18 @@ No installation. No account beyond perma.cc. Just a [perma.cc API key](https://p
 
 Your documents and API key are processed entirely in your browser. Nothing is uploaded to any server other than the perma.cc API itself.
 
+## Part of lawreview.tools
+
+PermaDrop is one tool in the **[lawreview.tools](https://lawreview.tools)** suite — a free, open-source collection of Bluebook tools for law review editors and legal scholars:
+
+| Tool | What it does | When to use it |
+|------|-------------|----------------|
+| **[Zotero Perma Archiver](https://lawreview.tools/zotero)** | Auto-archives URLs to perma.cc as you save items in Zotero | While writing |
+| **[PermaDrop](https://lawreview.tools/permadrop/)** | Batch-archives all URLs in a .docx to perma.cc | Before submission |
+| **[SupraDrop](https://lawreview.tools/supradrop/)** | Audits citation logic across all footnotes | Before submission |
+
+Typical workflow: Zotero Perma Archiver while researching → PermaDrop to archive remaining URLs → SupraDrop to catch citation errors → submit.
+
 ## License
 
 Copyright (C) 2026 [Kirin Chang](https://kirinchang.com)
