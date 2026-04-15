@@ -146,7 +146,9 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.2s, color 0.2s; }
     .container { max-width: 680px; margin: 0 auto; padding: 40px 20px 120px; }
     h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
-    .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+    .subtitle { font-size: 14px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+    .trust-signals { font-size: 12px; color: var(--text-subtle, #999); margin-top: 10px; display: flex; align-items: center; gap: 0; flex-wrap: wrap; letter-spacing: 0.01em; }
+    .trust-signals .tsep { margin: 0 7px; opacity: 0.35; }
     .card { background: var(--surface); border-radius: 10px; padding: 22px 24px; margin-top: 16px; border: 1px solid var(--border); }
     .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
     .step-badge { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
@@ -271,8 +273,10 @@
       </button>
     </div>
     <p class="subtitle">
-      The Bluebook (Rule 18.2) requires permanent, archived URLs for online sources cited in legal scholarship. PermaDrop automates this: upload a Word document, archive every URL to perma.cc in one click, and download a clean or redline copy — original formatting fully preserved.<br>
-      Free &amp; open source · Runs entirely in your browser · Nothing leaves your device
+      Bluebook Rule 18.2 now requires a permanent archive link for every internet source you cite. PermaDrop handles the backlog: drop in your Word document, select the URLs to archive, and get back a redline-ready copy with perma.cc links inserted directly into your footnotes.
+    </p>
+    <p class="trust-signals">
+      <span>Free &amp; open source</span><span class="tsep">·</span><span>100% in-browser</span><span class="tsep">·</span><span>Nothing sent to any server</span>
     </p>
     <p style="margin-top:8px; font-size:13px; color:var(--text-muted);">
       <a href="https://github.com/kirinccchang/permadrop" target="_blank" rel="noopener noreferrer"
