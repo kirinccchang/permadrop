@@ -73,4 +73,4 @@ Copyright (C) 2026 [Kirin Chang](https://kirinchang.com)
 
 ---
 
-*本工具與《藍皮書》或 Zotero 無任何附屬或背書關係。Not affiliated with or endorsed by The Bluebook or Zotero.*
+*本工具與《藍皮書》或 Zotero 無任何附屬或背書關係。*
