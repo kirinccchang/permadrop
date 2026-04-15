@@ -70,3 +70,7 @@ Copyright (C) 2026 [Kirin Chang](https://kirinchang.com)
 
 Licensed under the [GNU Affero General Public License v3.0](LICENSE).  
 If you modify this tool and run it as a network service, you must release your modified source code under the same license.
+
+---
+
+*Not affiliated with or endorsed by The Bluebook or Zotero. 本工具與《藍皮書》或 Zotero 無任何附屬或背書關係。*

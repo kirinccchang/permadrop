@@ -70,3 +70,7 @@ Copyright (C) 2026 [Kirin Chang](https://kirinchang.com)
 
 本工具採用 [GNU Affero 通用公共授權條款第 3 版（AGPL-3.0）](LICENSE)。  
 若您修改本工具並以網路服務形式提供，須以相同授權條款公開修改後的原始碼。
+
+---
+
+*本工具與《藍皮書》或 Zotero 無任何附屬或背書關係。Not affiliated with or endorsed by The Bluebook or Zotero.*
