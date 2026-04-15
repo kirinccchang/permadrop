@@ -218,7 +218,8 @@
       border: 1px solid var(--privacy-border); border-radius: 7px; padding: 10px 13px; margin-top: 6px;
     }
     .privacy-note p { font-size: 12px; color: var(--privacy-text); line-height: 1.5; }
-    .sister-banner { display: flex; align-items: center; gap: 10px; background: var(--preview-bg); border: 1px solid var(--border); border-radius: 7px; padding: 9px 13px; margin-top: 10px; }
+    .phase-label { display: inline-block; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.65px; text-transform: uppercase; color: #888; border: 1px solid #bbb; border-radius: 4px; padding: 3px 8px; margin-bottom: 14px; }
+    .sister-banner { display: flex; align-items: center; gap: 10px; background: var(--preview-bg); border: 1px solid var(--border); border-radius: 7px; padding: 9px 13px; margin-top: 16px; }
     .sister-banner p { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
     .sister-banner a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
     .dark-toggle { background: none; border: 1px solid var(--border); border-radius: 99px; padding: 4px 11px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
@@ -249,6 +250,7 @@
 <div class="container" x-data="app()">
 
   <div style="margin-bottom: 28px;">
+    <div class="phase-label">Writing Phase · PermaDrop</div>
     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
       <h1>PermaDrop</h1>
       <button class="dark-toggle" @click="darkMode = !darkMode" :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'">
@@ -369,14 +371,6 @@
 
     <div class="privacy-note" style="margin-top: 10px;">
       <p>Documents are read directly in your browser. No file upload. No server receives your content.</p>
-    </div>
-
-    <div class="sister-banner" style="margin-top:10px;">
-      <p>
-        Already archived your URLs? Check your supra, Id., and signal citations with
-        <a href="https://lawreview.tools/supradrop/" target="_blank" rel="noopener noreferrer">SupraDrop</a>,
-        the sister tool — bring the same .docx there.
-      </p>
     </div>
 
     <p class="error-msg" x-show="fileError" x-text="fileError"></p>
@@ -535,6 +529,14 @@
       <p class="hint" style="margin-top:8px;">All files are bundled into a single ZIP. Only available after all documents are fully archived.</p>
     </div>
 
+  </div>
+
+  <div class="sister-banner">
+    <p>
+      Already archived your URLs? Check your supra, Id., and signal citations with
+      <a href="https://lawreview.tools/supradrop/" target="_blank" rel="noopener noreferrer">SupraDrop</a>,
+      the sister tool — bring the same .docx there.
+    </p>
   </div>
 
   <!-- Sticky archive action bar — lives INSIDE x-data scope so Alpine bindings work -->
