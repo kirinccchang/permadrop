@@ -1435,13 +1435,37 @@ function app() {
                 if (idx === -1) break;
                 const end = idx + url.length;
 
-                // Find the run that contains the END of this url occurrence
-                let pos = 0, endRun = null;
+                // Find the run containing the END of this URL, tracking the
+                // character offset within that run where the URL ends.
+                let pos = 0, endRun = null, endCharInRun = 0;
                 for (const e of eligible) {
+                  const prevPos = pos;
                   pos += e.text.length;
-                  if (pos >= end) { endRun = e; break; }
+                  if (pos >= end) { endRun = e; endCharInRun = end - prevPos; break; }
                 }
                 if (!endRun) break;
+
+                // If the URL ends mid-run, split the run at the URL endpoint so
+                // the perma link inserts right after the URL — not after the
+                // trailing citation text ("; next citation…") in the same run.
+                if (endCharInRun < endRun.text.length) {
+                  const tEls = Array.from(endRun.r.getElementsByTagNameNS(W_NS, 't'));
+                  if (tEls.length === 1) {
+                    const full = tEls[0].textContent;
+                    tEls[0].textContent = full.slice(0, endCharInRun);
+                    tEls[0].setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+                    const tailRun = xmlDoc2.createElementNS(W_NS, 'w:r');
+                    const srcRPr = endRun.r.getElementsByTagNameNS(W_NS, 'rPr')[0];
+                    if (srcRPr) tailRun.appendChild(srcRPr.cloneNode(true));
+                    const tailT = xmlDoc2.createElementNS(W_NS, 'w:t');
+                    tailT.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+                    tailT.textContent = full.slice(endCharInRun);
+                    tailRun.appendChild(tailT);
+                    endRun.r.parentNode.insertBefore(tailRun, endRun.r.nextSibling);
+                  }
+                  // Multi-<w:t> run: fall through; paragraph-level insertion is
+                  // imprecise but avoids corrupting complex run structures.
+                }
 
                 // Insert at paragraph level (never inside existing <w:ins>/<w:del>).
                 const { parent, after } = getParaLevelRef(endRun.r);
@@ -1602,9 +1626,29 @@ function app() {
                   const idx = combined.indexOf(url, from);
                   if (idx === -1) break;
                   const end = idx + url.length;
-                  let pos = 0, endRun = null;
-                  for (const e of eligible) { pos += e.text.length; if (pos >= end) { endRun = e; break; } }
+                  let pos = 0, endRun = null, endCharInRun = 0;
+                  for (const e of eligible) {
+                    const prevPos = pos;
+                    pos += e.text.length;
+                    if (pos >= end) { endRun = e; endCharInRun = end - prevPos; break; }
+                  }
                   if (!endRun) break;
+                  if (endCharInRun < endRun.text.length) {
+                    const tEls = Array.from(endRun.r.getElementsByTagNameNS(W_NS, 't'));
+                    if (tEls.length === 1) {
+                      const full = tEls[0].textContent;
+                      tEls[0].textContent = full.slice(0, endCharInRun);
+                      tEls[0].setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+                      const tailRun = xmlDoc2.createElementNS(W_NS, 'w:r');
+                      const srcRPr = endRun.r.getElementsByTagNameNS(W_NS, 'rPr')[0];
+                      if (srcRPr) tailRun.appendChild(srcRPr.cloneNode(true));
+                      const tailT = xmlDoc2.createElementNS(W_NS, 'w:t');
+                      tailT.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+                      tailT.textContent = full.slice(endCharInRun);
+                      tailRun.appendChild(tailT);
+                      endRun.r.parentNode.insertBefore(tailRun, endRun.r.nextSibling);
+                    }
+                  }
                   const { parent, after } = getParaLevelRef(endRun.r);
                   const node = makeNode(xmlDoc2, permaUrl, endRun.r, relsCtx);
                   parent.insertBefore(node, after.nextSibling);
