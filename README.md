@@ -73,4 +73,4 @@ If you modify this tool and run it as a network service, you must release your m
 
 ---
 
-*Not affiliated with or endorsed by The Bluebook or Zotero.*
+*Not affiliated with or endorsed by The Bluebook, Zotero, or perma.cc.*
