@@ -672,10 +672,11 @@ function app() {
       this.notifyWhenDone = localStorage.getItem('perma-notify') === '1';
       this.$watch('notifyWhenDone', val => localStorage.setItem('perma-notify', val ? '1' : '0'));
 
+      const saved = localStorage.getItem('permadrop-dark');
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      this.darkMode = mq.matches;
-      mq.addEventListener('change', e => { this.darkMode = e.matches; });
-      this.$watch('darkMode', v => document.body.classList.toggle('dark', v));
+      this.darkMode = saved !== null ? saved === '1' : mq.matches;
+      if (saved === null) mq.addEventListener('change', e => { this.darkMode = e.matches; });
+      this.$watch('darkMode', v => { document.body.classList.toggle('dark', v); localStorage.setItem('permadrop-dark', v ? '1' : '0'); });
       document.body.classList.toggle('dark', this.darkMode);
     },
 

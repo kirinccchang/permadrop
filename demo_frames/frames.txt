@@ -1,0 +1,21 @@
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/01_landing.png'
+duration 3.0
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/02_api_key.png'
+duration 2.0
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/03_connected.png'
+duration 2.5
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/04_folder.png'
+duration 2.5
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/05_file_uploaded.png'
+duration 2.5
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/06_url_list.png'
+duration 3.0
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/07_ready_to_archive.png'
+duration 2.5
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/08_archiving.png'
+duration 2.5
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/09_done_url_rows.png'
+duration 3.0
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/10_download.png'
+duration 4.0
+file '/Users/kirinchang/Library/CloudStorage/GoogleDrive-cc9570@nyu.edu/My Drive/Projects/PermaDrop/demo_frames/10_download.png'
